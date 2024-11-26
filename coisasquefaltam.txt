@@ -1,0 +1,4 @@
+Calculadora estatística:
+-Regressão
+-Erro(?)
+Simulador:
