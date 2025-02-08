@@ -1,5 +1,7 @@
 from sympy.plotting import plot
+from sympy import symbols, diff, lambdify
 import sympy as sp
+import numpy as np
 import statistics as stat
 import math
 import io
@@ -17,8 +19,9 @@ class StatCalc: #Classe que armazena a calculadora estatística
         "unb": 0,
         "unc": 0,
     }
-    def __init__(self, eq:str, incertezab:list,value:list, lowbound:float, upbound:float): #Construtor da classe
+    def __init__(self, eq:str, incertezab:list,value:list, lowbound:float, upbound:float,value2:list): #Construtor da classe
         self.value = value
+        self.value2 = value2
         self.eq = eq
         self.unb = incertezab
         self.lb = lowbound
@@ -59,25 +62,68 @@ class StatCalc: #Classe que armazena a calculadora estatística
     def __regression(self):
         #TODO
         dummyvar = 0
-    def __statgraph(self): #Função que plota o gráfico da equação desejada
-        f = sp.sympify(self.eq) #Função a ser plotada
-        if len(f.free_symbols) > 1: #Checagem para ver se não há mais de uma variável independente na equação, pois nesse caso ela não poderá ser plotada
-            myplot = plot(0, (sp.sympify(0),self.lb,self.ub), title="Função não pode ser plotada!",show = False) #Prevenção de erros
-            buf = io.BytesIO()
-            myplot.save(buf)
-            buf.seek(0)
-            plot_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-            buf.close()
-            plt.close()
-            return plot_base64
-        else:
-            myplot = plot(f, (sp.sympify("x"),self.lb,self.ub), show = False) #Plotar equação
-            buf = io.BytesIO()
-            myplot.save(buf)
-            buf.seek(0)
-            plot_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-            buf.close()
-            plt.close()
-            return plot_base64
+    def __statgraph(self, y_min_target=-20, y_max_target=20): 
+        f = sp.sympify(self.eq)  # Parse the equation into a SymPy function
+
+        # Ensure the function has exactly one independent variable
+        if len(f.free_symbols) != 1:
+            raise ValueError("The function must have exactly one independent variable to be plotted.")
+
+        # Identify the variable (e.g., 'x') and create a numerical function
+        variable = list(f.free_symbols)[0]
+        f_numeric = sp.lambdify(variable, f, "numpy")
+
+        # Generate x-values for the line plot
+        x_line = np.linspace(self.lb, self.ub, 500)  # 500 points between bounds
+        y_line = f_numeric(x_line)  # Evaluate the function at these x-values
+
+        # Calculate the current y-range of the function
+        y_min, y_max = min(y_line), max(y_line)
+
+        # Check if scaling is necessary
+        if y_max == y_min:
+            raise ValueError("The function's output is constant and cannot be scaled.")
+
+        # Rescale the function to fit within (y_min_target, y_max_target)
+        target_range = y_max_target - y_min_target
+        current_range = y_max - y_min
+        scale_factor = target_range / current_range
+        offset = y_min_target - scale_factor * y_min
+
+        # Define the rescaled function
+        f_rescaled = scale_factor * f + offset
+        f_rescaled_numeric = sp.lambdify(variable, f_rescaled, "numpy")
+        y_rescaled = f_rescaled_numeric(x_line)
+
+        # Scatter plot data
+        x_scatter = self.value[0]  # Assuming `self.value` is a list of x-values
+        y_scatter = self.value2
+
+        # Create the plot
+        plt.figure(figsize=(8, 6))
+        plt.scatter(x_scatter, y_scatter, label="Data Points", color="blue", alpha=0.6)
+        plt.plot(x_line, y_rescaled, label="Rescaled Function", color="red", linewidth=2)
+
+        # Set y-axis limits to the target interval
+        plt.ylim(y_min_target, y_max_target)
+
+        # Add labels, legend, and title
+        plt.title("Rescaled Function and Data Scatter Plot")
+        plt.xlabel(str(variable))
+        plt.ylabel("f(" + str(variable) + ")")
+        plt.legend()
+        plt.grid(True)
+
+        # Save the plot to a buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        plot_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+        buf.close()
+        plt.close()
+
+        return plot_base64
+
+
     def send(self):
         return ({"stats": self.__propag(), "graph": self.__statgraph()})

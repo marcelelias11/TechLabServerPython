@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from sympy import symbols, diff, lambdify
 
 # Gradient Descent Implementation
+
 def gradient_descent(func, params, data, alpha=0.01, epochs=1000):
     """
     Performs gradient descent on a given sympy function.
@@ -21,6 +22,7 @@ def gradient_descent(func, params, data, alpha=0.01, epochs=1000):
     m = len(x_vals)  # Number of data points
     
     # Convert function and gradients to callable functions
+    
     gradients = [diff(func, param) for param in params]
     func_lambdified = lambdify(params + [x], func)
     grad_lambdified = [lambdify(params + [x], grad) for grad in gradients]

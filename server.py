@@ -7,7 +7,7 @@ app = Flask(__name__)
 @app.route('/stat', methods=['POST'])
 def stat_data():
     data = request.json
-    statobj = sc.StatCalc(data["eq"], data["unb"], data["data"], data["lb"], data["ub"])
+    statobj = sc.StatCalc(data["eq"], data["unb"], data["data"], data["lb"], data["ub"], data["y"])
     # Process the received data
     print(f"Received data: {data}")
     simdata = statobj.send()
